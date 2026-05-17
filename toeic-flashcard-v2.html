@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOEIC Vocabulary – Flashcard + Quiz + Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green: #3d6b4f; --green-dark: #2d5a3d; --green-light: #eaf3de; --green-border: #c0dd97; --green-text: #3b6d11;
+  --red-light: #fdf0ed; --red-border: #f5c4b3; --red-text: #993c1d;
+  --amber: #ba7517; --amber-light: #faeeda; --amber-border: #fac775;
+  --bg: #f5f0e8; --card: #fff; --border: #d8d0c4; --muted: #6b6760; --text: #1a1a1a;
+}
+body { font-family:'DM Sans',sans-serif; background:var(--bg); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:1.5rem 1rem 3rem; color:var(--text); }
+
+/* ── TABS ── */
+.tabs { display:flex; gap:0; max-width:520px; width:100%; background:#e8e2d8; border-radius:14px; padding:4px; margin-bottom:1.5rem; }
+.tab { flex:1; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:500; border:none; background:transparent; border-radius:10px; padding:0.55rem 0.4rem; cursor:pointer; color:var(--muted); transition:all .2s; }
+.tab.active { background:#fff; color:var(--text); box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+
+/* ── HEADER ── */
+.page-header { text-align:center; margin-bottom:1.2rem; }
+.page-header h1 { font-family:'Lora',serif; font-size:1.9rem; font-weight:600; letter-spacing:-.02em; }
+.page-header p { color:var(--muted); font-size:0.85rem; margin-top:.2rem; }
+
+/* ── PROGRESS ── */
+.progress-wrap { width:100%; max-width:520px; background:#e0d8cc; border-radius:99px; height:6px; margin-bottom:.4rem; overflow:hidden; }
+.progress-bar { height:6px; background:var(--green); border-radius:99px; transition:width .4s ease; }
+.progress-lbl { font-size:.78rem; color:var(--muted); text-align:center; margin-bottom:1.2rem; }
+
+/* ── SCORE BOARD ── */
+.score-board { display:flex; gap:.8rem; max-width:520px; width:100%; margin-bottom:1.2rem; }
+.score-item { flex:1; text-align:center; background:#fff; border:1px solid var(--border); border-radius:12px; padding:.6rem .5rem; }
+.score-num { font-size:1.4rem; font-weight:600; }
+.score-lbl { font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.score-item.green .score-num { color:var(--green-text); }
+.score-item.red   .score-num { color:var(--red-text); }
+.score-item.gray  .score-num { color:var(--muted); }
+
+/* ── FLASHCARD ── */
+.card-scene { width:100%; max-width:520px; height:290px; perspective:1200px; cursor:pointer; margin-bottom:1.2rem; }
+.card-inner { width:100%; height:100%; position:relative; transform-style:preserve-3d; transition:transform .55s cubic-bezier(.4,0,.2,1); }
+.card-inner.flipped { transform:rotateY(180deg); }
+.card-face { position:absolute; width:100%; height:100%; border-radius:20px; backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:1.5rem; text-align:center; }
+.card-front { background:#fff; border:1.5px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,.08); }
+.card-back  { background:#2d5a3d; border:1.5px solid #1e3d2a; transform:rotateY(180deg); }
+.card-tag  { font-size:.68rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#a09788; margin-bottom:.8rem; }
+.card-back .card-tag { color:#7ab390; }
+.card-word { font-family:'Lora',serif; font-size:2.2rem; font-weight:600; color:var(--text); margin-bottom:.3rem; line-height:1.1; }
+.card-phonetic { font-family:'Lora',serif; font-style:italic; font-size:.95rem; color:#8a7f72; margin-bottom:.4rem; }
+.card-type { font-size:.7rem; font-weight:600; background:#f0ebe3; color:#6b6760; padding:2px 10px; border-radius:99px; text-transform:uppercase; letter-spacing:.08em; }
+.card-meaning { font-family:'Lora',serif; font-size:1.5rem; font-weight:600; color:#fff; margin-bottom:.6rem; line-height:1.3; }
+.card-example { font-size:.84rem; color:#a8c9b4; font-style:italic; line-height:1.5; max-width:360px; }
+.card-hint { font-size:.68rem; color:#c4bdb5; margin-top:1rem; }
+.card-back .card-hint { color:#5a8a6a; }
+
+/* sound btn on card */
+.sound-btn { position:absolute; top:12px; right:14px; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); border-radius:8px; color:#fff; font-size:1rem; width:34px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s; z-index:2; }
+.sound-btn:hover { background:rgba(255,255,255,.28); }
+.sound-btn-front { position:absolute; top:12px; right:14px; background:#f0ebe3; border:1px solid var(--border); border-radius:8px; font-size:1rem; width:34px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; color:var(--text); transition:background .15s; }
+.sound-btn-front:hover { background:#e0d8cc; }
+
+/* ── BUTTONS ── */
+.btn { font-family:'DM Sans',sans-serif; font-size:.85rem; font-weight:500; border:1.5px solid #ccc5bb; border-radius:10px; background:#fff; color:var(--text); padding:.58rem 1.1rem; cursor:pointer; transition:all .18s; display:flex; align-items:center; justify-content:center; gap:.4rem; }
+.btn:hover { background:#f0ebe3; border-color:#b0a898; }
+.btn:active { transform:scale(.97); }
+.btn-main { flex:1; background:var(--green); color:#fff; border-color:var(--green-dark); font-size:.9rem; }
+.btn-main:hover { background:var(--green-dark); }
+.btn-wrong { flex:1; background:var(--red-light); border-color:var(--red-border); color:var(--red-text); font-weight:500; }
+.btn-wrong:hover { background:var(--red-border); }
+.btn-right { flex:1; background:var(--green-light); border-color:var(--green-border); color:var(--green-text); font-weight:500; }
+.btn-right:hover { background:var(--green-border); }
+
+.controls { display:flex; align-items:center; gap:.8rem; max-width:520px; width:100%; margin-bottom:1rem; }
+.result-btns { display:flex; gap:.8rem; max-width:520px; width:100%; margin-bottom:1.5rem; }
+
+/* ── WORDLIST ── */
+.wordlist-toggle { max-width:520px; width:100%; margin-bottom:.5rem; }
+.wordlist-toggle summary { font-size:.8rem; color:var(--muted); cursor:pointer; user-select:none; padding:.4rem 0; list-style:none; display:flex; align-items:center; gap:.3rem; }
+.wordlist-toggle summary::before { content:'▸'; font-size:.68rem; }
+.wordlist-toggle[open] summary::before { content:'▾'; }
+.wordlist { display:flex; flex-wrap:wrap; gap:.4rem; padding:.7rem 0; }
+.word-pill { font-size:.75rem; padding:3px 10px; border-radius:99px; background:#e8e3d8; color:#5a544c; border:1px solid #d4cdc4; cursor:pointer; transition:all .15s; }
+.word-pill.known   { background:var(--green-light); color:var(--green-text); border-color:var(--green-border); }
+.word-pill.unknown { background:var(--red-light); color:var(--red-text); border-color:var(--red-border); }
+.word-pill.current { background:var(--green); color:#fff; border-color:var(--green-dark); }
+
+/* ── DONE SCREEN ── */
+.done-screen { display:none; flex-direction:column; align-items:center; text-align:center; max-width:520px; width:100%; background:#fff; border-radius:20px; border:1.5px solid var(--border); padding:2.2rem; margin-bottom:1.5rem; }
+.done-screen.visible { display:flex; }
+.done-emoji { font-size:2.8rem; margin-bottom:.8rem; }
+.done-title { font-family:'Lora',serif; font-size:1.5rem; font-weight:600; margin-bottom:.4rem; }
+.done-sub   { font-size:.88rem; color:var(--muted); margin-bottom:1.2rem; }
+.done-stats { display:flex; gap:.8rem; margin-bottom:1.3rem; }
+.hidden { display:none !important; }
+
+/* ── QUIZ ── */
+#quizSection { width:100%; max-width:520px; display:none; flex-direction:column; align-items:center; }
+#quizSection.active { display:flex; }
+.quiz-question { font-family:'Lora',serif; font-size:1.35rem; font-weight:600; text-align:center; margin-bottom:.4rem; line-height:1.3; }
+.quiz-sub { font-size:.83rem; color:var(--muted); margin-bottom:1.4rem; text-align:center; font-style:italic; }
+.quiz-options { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; width:100%; margin-bottom:1.2rem; }
+.quiz-opt { font-family:'DM Sans',sans-serif; font-size:.88rem; font-weight:500; border:1.5px solid var(--border); border-radius:12px; background:#fff; color:var(--text); padding:.75rem 1rem; cursor:pointer; text-align:left; transition:all .2s; line-height:1.4; }
+.quiz-opt:hover:not(:disabled) { background:#f0ebe3; border-color:#b0a898; }
+.quiz-opt.correct { background:var(--green-light) !important; border-color:var(--green-border) !important; color:var(--green-text) !important; }
+.quiz-opt.wrong   { background:var(--red-light) !important; border-color:var(--red-border) !important; color:var(--red-text) !important; }
+.quiz-opt:disabled { cursor:default; }
+.quiz-feedback { font-size:.9rem; font-weight:500; text-align:center; min-height:1.4rem; margin-bottom:.8rem; }
+.quiz-feedback.ok  { color:var(--green-text); }
+.quiz-feedback.err { color:var(--red-text); }
+.quiz-type-bar { display:flex; gap:.5rem; max-width:520px; width:100%; margin-bottom:1rem; }
+.quiz-type-btn { flex:1; font-family:'DM Sans',sans-serif; font-size:.78rem; font-weight:500; border:1.5px solid var(--border); border-radius:8px; background:#fff; color:var(--muted); padding:.4rem; cursor:pointer; transition:all .18s; }
+.quiz-type-btn.active { background:var(--green); color:#fff; border-color:var(--green-dark); }
+.quiz-sound-row { display:flex; align-items:center; justify-content:center; gap:.8rem; margin-bottom:1rem; }
+.quiz-play-btn { background:var(--green); color:#fff; border:none; border-radius:50%; width:48px; height:48px; font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+.quiz-play-btn:hover { background:var(--green-dark); }
+.quiz-play-label { font-size:.82rem; color:var(--muted); }
+
+/* ── MATCH GAME ── */
+#matchSection { width:100%; max-width:520px; display:none; flex-direction:column; align-items:center; }
+#matchSection.active { display:flex; }
+.match-instructions { font-size:.83rem; color:var(--muted); text-align:center; margin-bottom:1rem; background:#fff; border:1px solid var(--border); border-radius:10px; padding:.7rem 1rem; width:100%; }
+.match-grid { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; width:100%; margin-bottom:1.2rem; }
+.match-card { font-family:'DM Sans',sans-serif; font-size:.84rem; font-weight:500; border:1.5px solid var(--border); border-radius:11px; background:#fff; color:var(--text); padding:.65rem .9rem; cursor:pointer; text-align:center; transition:all .2s; min-height:52px; display:flex; align-items:center; justify-content:center; line-height:1.3; }
+.match-card:hover:not(.matched):not(.locked) { background:#f0ebe3; border-color:#b0a898; }
+.match-card.selected { background:var(--amber-light); border-color:var(--amber-border); color:var(--amber); }
+.match-card.matched  { background:var(--green-light); border-color:var(--green-border); color:var(--green-text); cursor:default; opacity:.7; }
+.match-card.wrong-flash { background:var(--red-light); border-color:var(--red-border); color:var(--red-text); }
+.match-card.locked { cursor:default; }
+.match-stats { display:flex; gap:.8rem; width:100%; margin-bottom:1rem; }
+.match-stat { flex:1; text-align:center; background:#fff; border:1px solid var(--border); border-radius:10px; padding:.55rem; }
+.match-stat-num { font-size:1.3rem; font-weight:600; }
+.match-stat-lbl { font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.match-stat.timer-stat .match-stat-num { color:var(--amber); }
+.match-timer { font-size:1.5rem; font-weight:600; font-family:'Lora',serif; color:var(--amber); }
+.match-done { text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:16px; padding:1.8rem; width:100%; margin-bottom:1rem; }
+.match-done h2 { font-family:'Lora',serif; font-size:1.4rem; margin-bottom:.5rem; }
+.match-done p { font-size:.88rem; color:var(--muted); margin-bottom:1rem; }
+
+/* ── SECTION HIDE ── */
+#flashSection { width:100%; max-width:520px; display:flex; flex-direction:column; align-items:center; }
+
+/* TTS status */
+.tts-info { font-size:.72rem; color:var(--muted); text-align:center; margin-bottom:.8rem; background:#f0ebe3; border-radius:8px; padding:.35rem .8rem; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>TOEIC Vocabulary</h1>
+  <p>Part 1 · Flashcard · Quiz · Nối từ</p>
+</div>
+
+<!-- TAB BAR -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('flash')">📚 Flashcard</button>
+  <button class="tab" onclick="switchTab('quiz')">🧠 Quiz</button>
+  <button class="tab" onclick="switchTab('match')">🎯 Nối từ</button>
+</div>
+
+<!-- ══════════════════ FLASHCARD SECTION ══════════════════ -->
+<div id="flashSection">
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+  <p class="progress-lbl" id="progressLabel">Thẻ 1 / 20</p>
+
+  <div class="score-board">
+    <div class="score-item green"><div class="score-num" id="scoreRight">0</div><div class="score-lbl">✓ Biết</div></div>
+    <div class="score-item red"><div class="score-num" id="scoreWrong">0</div><div class="score-lbl">✗ Chưa</div></div>
+    <div class="score-item gray"><div class="score-num" id="scoreLeft">20</div><div class="score-lbl">Còn lại</div></div>
+  </div>
+
+  <div class="card-scene" id="cardScene" onclick="flipCard()">
+    <div class="card-inner" id="cardInner">
+      <div class="card-face card-front">
+        <button class="sound-btn-front" onclick="event.stopPropagation();speakWord()" title="Nghe phát âm">🔊</button>
+        <div class="card-tag">Từ vựng TOEIC</div>
+        <div class="card-word" id="cardWord">accomplish</div>
+        <div class="card-phonetic" id="cardPhonetic">/əˈkɒm.plɪʃ/</div>
+        <div class="card-type" id="cardType">verb</div>
+        <div class="card-hint">Nhấn để xem nghĩa →</div>
+      </div>
+      <div class="card-face card-back">
+        <button class="sound-btn" onclick="event.stopPropagation();speakWord()" title="Nghe lại">🔊</button>
+        <div class="card-tag">Nghĩa tiếng Việt</div>
+        <div class="card-meaning" id="cardMeaning">hoàn thành, đạt được</div>
+        <div class="card-example" id="cardExample">"She accomplished all her goals this year."</div>
+        <div class="card-hint">← Nhấn để lật lại</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-btns hidden" id="resultBtns">
+    <button class="btn btn-wrong" onclick="markCard(false)">✗ Chưa thuộc</button>
+    <button class="btn btn-right" onclick="markCard(true)">✓ Đã thuộc</button>
+  </div>
+  <div class="controls" id="navControls">
+    <button class="btn" onclick="prevCard()">← Trước</button>
+    <button class="btn btn-main" onclick="flipCard()">🔄 Lật thẻ</button>
+    <button class="btn" onclick="nextCard()">Sau →</button>
+  </div>
+
+  <div class="done-screen" id="doneScreen">
+    <div class="done-emoji" id="doneEmoji">🎉</div>
+    <div class="done-title">Hoàn thành!</div>
+    <div class="done-sub">Bạn đã học qua tất cả thẻ từ vựng.</div>
+    <div class="done-stats">
+      <div class="score-item green" style="min-width:100px"><div class="score-num" id="finalRight">0</div><div class="score-lbl">Đã thuộc</div></div>
+      <div class="score-item red" style="min-width:100px"><div class="score-num" id="finalWrong">0</div><div class="score-lbl">Cần ôn lại</div></div>
+    </div>
+    <button class="btn btn-main" style="width:100%;margin-bottom:.6rem" onclick="restartAll()">🔁 Học lại tất cả</button>
+    <button class="btn" style="width:100%" onclick="restartWrong()">⚡ Ôn từ chưa thuộc</button>
+  </div>
+
+  <details class="wordlist-toggle">
+    <summary>Danh sách từ</summary>
+    <div class="wordlist" id="wordListEl"></div>
+  </details>
+</div>
+
+<!-- ══════════════════ QUIZ SECTION ══════════════════ -->
+<div id="quizSection">
+  <div class="quiz-type-bar">
+    <button class="quiz-type-btn active" onclick="setQuizMode('vi')" id="qmVI">🇻🇳 Chọn nghĩa</button>
+    <button class="quiz-type-btn" onclick="setQuizMode('en')" id="qmEN">🔤 Chọn từ</button>
+    <button class="quiz-type-btn" onclick="setQuizMode('listen')" id="qmListen">🔊 Nghe chọn</button>
+  </div>
+
+  <div class="progress-wrap"><div class="progress-bar" id="qProgressBar" style="width:0%"></div></div>
+  <p class="progress-lbl" id="qProgressLabel">Câu 1 / 20</p>
+
+  <div class="score-board" style="margin-bottom:1rem">
+    <div class="score-item green"><div class="score-num" id="qRight">0</div><div class="score-lbl">✓ Đúng</div></div>
+    <div class="score-item red"><div class="score-num" id="qWrong">0</div><div class="score-lbl">✗ Sai</div></div>
+    <div class="score-item gray"><div class="score-num" id="qLeft">20</div><div class="score-lbl">Còn lại</div></div>
+  </div>
+
+  <!-- listen mode play button -->
+  <div class="quiz-sound-row hidden" id="qListenRow">
+    <button class="quiz-play-btn" onclick="speakQuizWord()">🔊</button>
+    <span class="quiz-play-label">Nhấn để nghe từ, rồi chọn nghĩa</span>
+  </div>
+
+  <div class="quiz-question" id="qQuestion"></div>
+  <div class="quiz-sub" id="qSub"></div>
+  <div class="quiz-options" id="qOptions"></div>
+  <div class="quiz-feedback" id="qFeedback"></div>
+  <button class="btn btn-main" id="qNextBtn" onclick="nextQuiz()" style="width:100%;margin-bottom:1.2rem" disabled>Câu tiếp theo →</button>
+
+  <div class="done-screen" id="qDoneScreen">
+    <div class="done-emoji" id="qDoneEmoji">🎉</div>
+    <div class="done-title">Quiz xong!</div>
+    <div class="done-sub" id="qDoneSub"></div>
+    <div class="done-stats">
+      <div class="score-item green" style="min-width:100px"><div class="score-num" id="qFinalRight">0</div><div class="score-lbl">Đúng</div></div>
+      <div class="score-item red" style="min-width:100px"><div class="score-num" id="qFinalWrong">0</div><div class="score-lbl">Sai</div></div>
+    </div>
+    <button class="btn btn-main" style="width:100%" onclick="startQuiz()">🔁 Chơi lại</button>
+  </div>
+</div>
+
+<!-- ══════════════════ MATCH SECTION ══════════════════ -->
+<div id="matchSection">
+  <div class="match-instructions">
+    Nối <strong>từ tiếng Anh</strong> với <strong>nghĩa tiếng Việt</strong> tương ứng.<br>
+    Chọn 1 từ bên trái rồi chọn nghĩa bên phải (hoặc ngược lại).
+  </div>
+
+  <div class="match-stats">
+    <div class="match-stat"><div class="match-stat-num" id="mScore">0</div><div class="match-stat-lbl">Điểm</div></div>
+    <div class="match-stat timer-stat"><div class="match-stat-num" id="mTimer">60</div><div class="match-stat-lbl">Giây</div></div>
+    <div class="match-stat"><div class="match-stat-num" id="mLeft">8</div><div class="match-stat-lbl">Cặp còn lại</div></div>
+    <div class="match-stat"><div class="match-stat-num" id="mErrors">0</div><div class="match-stat-lbl">Sai</div></div>
+  </div>
+
+  <div class="match-grid" id="matchGrid"></div>
+
+  <div style="display:flex;gap:.7rem;width:100%;margin-bottom:1.2rem">
+    <button class="btn btn-main" onclick="startMatch()" style="flex:1">🔁 Ván mới</button>
+    <button class="btn" onclick="speakMatchWord()" id="mSpeakBtn" style="flex:0 0 auto">🔊 Nghe</button>
+  </div>
+
+  <div class="match-done hidden" id="matchDone">
+    <div style="font-size:2.4rem;margin-bottom:.6rem" id="mDoneEmoji">🏆</div>
+    <h2 id="mDoneTitle">Hoàn thành!</h2>
+    <p id="mDoneSub"></p>
+    <button class="btn btn-main" onclick="startMatch()" style="width:100%">🔁 Chơi ván mới</button>
+  </div>
+</div>
+
+<script>
+/* ══ VOCAB DATA ══ */
+const vocab = [
+  { word:"accomplish",    phonetic:"/əˈkɒm.plɪʃ/",        type:"verb", meaning:"hoàn thành, đạt được",         example:"She accomplished all her goals this year." },
+  { word:"adjacent",      phonetic:"/əˈdʒeɪ.sənt/",       type:"adj",  meaning:"kế bên, gần kề",               example:"The office is adjacent to the conference room." },
+  { word:"annual",        phonetic:"/ˈæn.ju.əl/",          type:"adj",  meaning:"hằng năm, thường niên",        example:"The annual report was submitted on time." },
+  { word:"applicant",     phonetic:"/ˈæp.lɪ.kənt/",       type:"noun", meaning:"người xin việc, ứng viên",     example:"There were many applicants for the position." },
+  { word:"approximately", phonetic:"/əˈprɒk.sɪ.mət.li/",  type:"adv",  meaning:"khoảng chừng, xấp xỉ",        example:"The meeting takes approximately two hours." },
+  { word:"available",     phonetic:"/əˈveɪ.lə.bəl/",      type:"adj",  meaning:"có sẵn, rảnh rỗi",             example:"The manager is available after 3 PM." },
+  { word:"budget",        phonetic:"/ˈbʌdʒ.ɪt/",          type:"noun", meaning:"ngân sách, kinh phí",          example:"We need to stay within the budget." },
+  { word:"candidate",     phonetic:"/ˈkæn.dɪ.deɪt/",      type:"noun", meaning:"ứng cử viên, thí sinh",        example:"The best candidate was offered the job." },
+  { word:"capable",       phonetic:"/ˈkeɪ.pə.bəl/",       type:"adj",  meaning:"có khả năng, có năng lực",     example:"She is capable of handling the project alone." },
+  { word:"circulation",   phonetic:"/ˌsɜː.kjʊˈleɪ.ʃən/", type:"noun", meaning:"lưu thông, phát hành",         example:"The magazine has a wide circulation." },
+  { word:"colleague",     phonetic:"/ˈkɒl.iːɡ/",          type:"noun", meaning:"đồng nghiệp",                  example:"My colleague helped me finish the report." },
+  { word:"convenient",    phonetic:"/kənˈviː.ni.ənt/",    type:"adj",  meaning:"thuận tiện, tiện lợi",         example:"The location is convenient for commuters." },
+  { word:"deadline",      phonetic:"/ˈded.laɪn/",          type:"noun", meaning:"hạn chót, thời hạn",           example:"We must meet the deadline by Friday." },
+  { word:"departure",     phonetic:"/dɪˈpɑː.tʃər/",       type:"noun", meaning:"sự khởi hành, việc rời đi",   example:"The departure was delayed due to weather." },
+  { word:"efficient",     phonetic:"/ɪˈfɪʃ.ənt/",         type:"adj",  meaning:"hiệu quả, có năng suất",      example:"This machine is very efficient." },
+  { word:"estimate",      phonetic:"/ˈes.tɪ.meɪt/",       type:"verb", meaning:"ước tính, ước lượng",          example:"Can you estimate the total cost?" },
+  { word:"facility",      phonetic:"/fəˈsɪl.ɪ.ti/",       type:"noun", meaning:"cơ sở vật chất, tiện nghi",   example:"The gym facility is open 24 hours." },
+  { word:"implement",     phonetic:"/ˈɪm.plɪ.ment/",      type:"verb", meaning:"thực hiện, triển khai",        example:"We will implement the new policy next month." },
+  { word:"negotiate",     phonetic:"/nɪˈɡəʊ.ʃi.eɪt/",    type:"verb", meaning:"đàm phán, thương lượng",       example:"They negotiated a better contract." },
+  { word:"revenue",       phonetic:"/ˈrev.ɪ.njuː/",       type:"noun", meaning:"doanh thu, nguồn thu",         example:"The company's revenue increased by 20%." }
+];
+
+/* ══ TEXT-TO-SPEECH (Web Speech API) ══ */
+function speak(text, lang='en-US', rate=0.85) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang; u.rate = rate;
+  // prefer a native English voice
+  const voices = speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.lang.startsWith('en') && v.localService);
+  if (preferred) u.voice = preferred;
+  speechSynthesis.speak(u);
+}
+// preload voices (Chrome needs this)
+if (window.speechSynthesis) speechSynthesis.getVoices();
+window.speechSynthesis && speechSynthesis.addEventListener('voiceschanged', () => speechSynthesis.getVoices());
+
+/* ══ TAB SWITCHING ══ */
+let activeTab = 'flash';
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['flash','quiz','match'][i]===tab));
+  document.getElementById('flashSection').style.display = tab==='flash' ? 'flex' : 'none';
+  document.getElementById('quizSection').classList.toggle('active', tab==='quiz');
+  document.getElementById('matchSection').classList.toggle('active', tab==='match');
+  if (tab==='quiz' && qCurrent===0 && qRight===0 && qWrong===0) startQuiz();
+  if (tab==='match') startMatch();
+}
+
+/* ══════════ FLASHCARD ══════════ */
+let queue=[...vocab], current=0, flipped=false, scoreRight=0, scoreWrong=0, known={}, unknown={};
+
+function speakWord() {
+  const item = queue[current] || vocab[0];
+  speak(item.word);
+}
+
+function render() {
+  if (current >= queue.length) { showDone(); return; }
+  const item = queue[current];
+  document.getElementById('cardWord').textContent = item.word;
+  document.getElementById('cardPhonetic').textContent = item.phonetic;
+  document.getElementById('cardType').textContent = item.type;
+  document.getElementById('cardMeaning').textContent = item.meaning;
+  document.getElementById('cardExample').textContent = '"' + item.example + '"';
+  flipped = false;
+  document.getElementById('cardInner').classList.remove('flipped');
+  document.getElementById('resultBtns').classList.add('hidden');
+  const pct = Math.round(current/queue.length*100);
+  document.getElementById('progressBar').style.width = pct+'%';
+  document.getElementById('progressLabel').textContent = `Thẻ ${current+1} / ${queue.length}`;
+  document.getElementById('scoreRight').textContent = scoreRight;
+  document.getElementById('scoreWrong').textContent = scoreWrong;
+  document.getElementById('scoreLeft').textContent = queue.length-current;
+  renderWordList();
+  // auto-speak on card load
+  setTimeout(() => speak(item.word), 300);
+}
+
+function flipCard() {
+  if (current>=queue.length) return;
+  flipped = !flipped;
+  document.getElementById('cardInner').classList.toggle('flipped', flipped);
+  if (flipped) document.getElementById('resultBtns').classList.remove('hidden');
+}
+
+function markCard(isRight) {
+  const item = queue[current];
+  if (isRight) { scoreRight++; known[item.word]=true; delete unknown[item.word]; }
+  else { scoreWrong++; unknown[item.word]=true; delete known[item.word]; }
+  current++; render();
+}
+function nextCard() { if (current<queue.length-1) { current++; render(); } }
+function prevCard() { if (current>0) { current--; render(); } }
+
+function showDone() {
+  document.getElementById('cardScene').classList.add('hidden');
+  document.getElementById('resultBtns').classList.add('hidden');
+  document.getElementById('navControls').classList.add('hidden');
+  document.getElementById('doneScreen').classList.add('visible');
+  const emoji = scoreRight>=queue.length*.8?'🏆':scoreRight>=queue.length*.5?'🎉':'💪';
+  document.getElementById('doneEmoji').textContent = emoji;
+  document.getElementById('finalRight').textContent = scoreRight;
+  document.getElementById('finalWrong').textContent = scoreWrong;
+  document.getElementById('progressBar').style.width='100%';
+  document.getElementById('progressLabel').textContent='Hoàn thành!';
+  renderWordList();
+}
+function restartAll() {
+  queue=[...vocab]; scoreRight=0; scoreWrong=0; current=0; known={}; unknown={};
+  document.getElementById('doneScreen').classList.remove('visible');
+  document.getElementById('cardScene').classList.remove('hidden');
+  document.getElementById('navControls').classList.remove('hidden');
+  render();
+}
+function restartWrong() {
+  if (!Object.keys(unknown).length) { alert('Tuyệt! Không còn từ chưa thuộc.'); return; }
+  queue=vocab.filter(v=>unknown[v.word]); scoreRight=0; scoreWrong=0; current=0; known={}; unknown={};
+  document.getElementById('doneScreen').classList.remove('visible');
+  document.getElementById('cardScene').classList.remove('hidden');
+  document.getElementById('navControls').classList.remove('hidden');
+  render();
+}
+function renderWordList() {
+  const el=document.getElementById('wordListEl'); el.innerHTML='';
+  queue.forEach((item,i) => {
+    const p=document.createElement('span'); p.className='word-pill'; p.textContent=item.word;
+    if (i===current) p.classList.add('current');
+    else if (known[item.word]) p.classList.add('known');
+    else if (unknown[item.word]) p.classList.add('unknown');
+    p.onclick=()=>{ current=i; render(); };
+    el.appendChild(p);
+  });
+}
+
+/* ══════════ QUIZ ══════════ */
+let qMode='vi', qQueue=[], qCurrent=0, qRight=0, qWrong=0, qAnswered=false, qCurrentWord=null;
+
+function setQuizMode(m) {
+  qMode=m;
+  document.getElementById('qmVI').classList.toggle('active',m==='vi');
+  document.getElementById('qmEN').classList.toggle('active',m==='en');
+  document.getElementById('qmListen').classList.toggle('active',m==='listen');
+  startQuiz();
+}
+
+function shuffle(arr) { return [...arr].sort(()=>Math.random()-.5); }
+
+function startQuiz() {
+  qQueue=shuffle(vocab); qCurrent=0; qRight=0; qWrong=0; qAnswered=false;
+  document.getElementById('qDoneScreen').classList.remove('visible');
+  document.getElementById('qOptions').style.display='grid';
+  document.getElementById('qNextBtn').style.display='flex';
+  nextQuiz(true);
+}
+
+function speakQuizWord() { if(qCurrentWord) speak(qCurrentWord.word); }
+
+function nextQuiz(init) {
+  if (!init && !qAnswered) return;
+  if (qCurrent>=qQueue.length) { showQuizDone(); return; }
+  qAnswered=false;
+  qCurrentWord = qQueue[qCurrent];
+  const item = qCurrentWord;
+
+  // update progress
+  const pct=Math.round(qCurrent/qQueue.length*100);
+  document.getElementById('qProgressBar').style.width=pct+'%';
+  document.getElementById('qProgressLabel').textContent=`Câu ${qCurrent+1} / ${qQueue.length}`;
+  document.getElementById('qRight').textContent=qRight;
+  document.getElementById('qWrong').textContent=qWrong;
+  document.getElementById('qLeft').textContent=qQueue.length-qCurrent;
+  document.getElementById('qFeedback').textContent='';
+  document.getElementById('qFeedback').className='quiz-feedback';
+  document.getElementById('qNextBtn').disabled=true;
+
+  // wrong options
+  const others = shuffle(vocab.filter(v=>v.word!==item.word)).slice(0,3);
+  const opts = shuffle([item,...others]);
+
+  if (qMode==='vi') {
+    // show English word, pick Vietnamese meaning
+    document.getElementById('qListenRow').classList.add('hidden');
+    document.getElementById('qQuestion').textContent = item.word;
+    document.getElementById('qSub').textContent = item.phonetic + ' · ' + item.type;
+    speak(item.word);
+    renderQuizOpts(opts, o=>o.meaning, item.meaning, item.word, false);
+
+  } else if (qMode==='en') {
+    // show Vietnamese meaning, pick English word
+    document.getElementById('qListenRow').classList.add('hidden');
+    document.getElementById('qQuestion').textContent = item.meaning;
+    document.getElementById('qSub').textContent = 'Chọn từ tiếng Anh đúng';
+    renderQuizOpts(opts, o=>o.word, item.word, item.word, true);
+
+  } else {
+    // listen mode: play audio, pick meaning
+    document.getElementById('qListenRow').classList.remove('hidden');
+    document.getElementById('qQuestion').textContent = '???';
+    document.getElementById('qSub').textContent = 'Nghe và chọn nghĩa đúng';
+    speak(item.word);
+    renderQuizOpts(opts, o=>o.meaning, item.meaning, item.word, false);
+  }
+}
+
+function renderQuizOpts(opts, labelFn, correctVal, correctWord, speakOnCorrect) {
+  const el = document.getElementById('qOptions'); el.innerHTML='';
+  opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className='quiz-opt';
+    btn.textContent = labelFn(o);
+    btn.onclick = () => {
+      if (qAnswered) return;
+      qAnswered=true;
+      const isRight = labelFn(o)===correctVal;
+      btn.classList.add(isRight?'correct':'wrong');
+      // mark correct
+      el.querySelectorAll('.quiz-opt').forEach(b => {
+        b.disabled=true;
+        if (b.textContent===correctVal) b.classList.add('correct');
+      });
+      const fb = document.getElementById('qFeedback');
+      if (isRight) {
+        qRight++; fb.textContent='✓ Chính xác! 🎉'; fb.className='quiz-feedback ok';
+        speak(correctWord);
+      } else {
+        qWrong++; fb.textContent=`✗ Sai. Đáp án: "${correctVal}"`; fb.className='quiz-feedback err';
+        speak(correctWord);
+      }
+      document.getElementById('qRight').textContent=qRight;
+      document.getElementById('qWrong').textContent=qWrong;
+      document.getElementById('qNextBtn').disabled=false;
+      qCurrent++;
+    };
+    el.appendChild(btn);
+  });
+}
+
+function showQuizDone() {
+  document.getElementById('qDoneScreen').classList.add('visible');
+  document.getElementById('qOptions').style.display='none';
+  document.getElementById('qNextBtn').style.display='none';
+  document.getElementById('qProgressBar').style.width='100%';
+  document.getElementById('qProgressLabel').textContent='Hoàn thành!';
+  const pct=Math.round(qRight/vocab.length*100);
+  document.getElementById('qDoneEmoji').textContent=pct>=80?'🏆':pct>=50?'🎉':'💪';
+  document.getElementById('qDoneSub').textContent=`Bạn đúng ${qRight}/${vocab.length} câu (${pct}%)`;
+  document.getElementById('qFinalRight').textContent=qRight;
+  document.getElementById('qFinalWrong').textContent=qWrong;
+}
+
+/* ══════════ MATCH GAME ══════════ */
+let mSelected=null, mScore=0, mErrors=0, mPairs=[], mTimer=60, mInterval=null, mCurrentWord=null;
+const MATCH_COUNT=8;
+
+function startMatch() {
+  clearInterval(mInterval);
+  mSelected=null; mScore=0; mErrors=0; mTimer=60;
+  document.getElementById('matchDone').classList.add('hidden');
+  document.getElementById('matchGrid').classList.remove('hidden');
+
+  // pick random 8 pairs
+  mPairs = shuffle(vocab).slice(0,MATCH_COUNT);
+  mCurrentWord = mPairs[0];
+
+  updateMatchStats();
+
+  // build grid: left col = English words, right col = shuffled meanings
+  const words = shuffle(mPairs.map(p=>({id:p.word, text:p.word, type:'word'})));
+  const meanings = shuffle(mPairs.map(p=>({id:p.word, text:p.meaning, type:'meaning'})));
+  const grid = document.getElementById('matchGrid');
+  grid.innerHTML='';
+
+  // interleave: word, meaning, word, meaning...
+  for (let i=0;i<MATCH_COUNT;i++) {
+    grid.appendChild(makeMatchCard(words[i]));
+    grid.appendChild(makeMatchCard(meanings[i]));
+  }
+
+  // start timer
+  mInterval = setInterval(()=>{
+    mTimer--;
+    document.getElementById('mTimer').textContent=mTimer;
+    if (mTimer<=0) endMatch(false);
+  },1000);
+}
+
+function makeMatchCard(item) {
+  const d=document.createElement('div');
+  d.className='match-card';
+  d.textContent=item.text;
+  d.dataset.id=item.id;
+  d.dataset.type=item.type;
+  d.onclick=()=>selectMatchCard(d, item);
+  return d;
+}
+
+function selectMatchCard(el, item) {
+  if (el.classList.contains('matched') || el.classList.contains('locked')) return;
+  if (mSelected && mSelected.el===el) { // deselect
+    el.classList.remove('selected'); mSelected=null; return;
+  }
+  if (!mSelected) {
+    el.classList.add('selected'); mSelected={el, item}; return;
+  }
+  // second selection
+  const first=mSelected, second={el, item};
+  mSelected=null;
+  first.el.classList.remove('selected');
+
+  if (first.item.id===second.item.id && first.item.type!==second.item.type) {
+    // MATCH!
+    mScore+=10; mErrors=Math.max(0,mErrors);
+    first.el.classList.add('matched','locked');
+    second.el.classList.add('matched','locked');
+    speak(first.item.type==='word'?first.item.text:second.item.text);
+    updateMatchStats();
+    const remaining=document.querySelectorAll('.match-card:not(.matched)').length;
+    if (remaining===0) { clearInterval(mInterval); setTimeout(()=>endMatch(true),400); }
+  } else {
+    // WRONG
+    mErrors++;
+    first.el.classList.add('wrong-flash');
+    second.el.classList.add('wrong-flash');
+    updateMatchStats();
+    setTimeout(()=>{
+      first.el.classList.remove('wrong-flash');
+      second.el.classList.remove('wrong-flash');
+    },600);
+  }
+}
+
+function updateMatchStats() {
+  document.getElementById('mScore').textContent=mScore;
+  document.getElementById('mTimer').textContent=mTimer;
+  const matched=document.querySelectorAll('.match-card.matched').length/2;
+  document.getElementById('mLeft').textContent=MATCH_COUNT-matched;
+  document.getElementById('mErrors').textContent=mErrors;
+}
+
+function speakMatchWord() {
+  if (mPairs.length) speak(mPairs[Math.floor(Math.random()*mPairs.length)].word);
+}
+
+function endMatch(win) {
+  clearInterval(mInterval);
+  document.getElementById('matchDone').classList.remove('hidden');
+  document.getElementById('matchGrid').classList.add('hidden');
+  const pct=Math.round(mScore/(MATCH_COUNT*10)*100);
+  document.getElementById('mDoneEmoji').textContent=win&&mErrors<=2?'🏆':win?'🎉':'⏰';
+  document.getElementById('mDoneTitle').textContent=win?'Hoàn thành!':'Hết giờ!';
+  document.getElementById('mDoneSub').textContent=
+    `Điểm: ${mScore} | Sai: ${mErrors} lần | Thời gian còn: ${mTimer}s`;
+}
+
+/* ── INIT ── */
+switchTab('flash');
+render();
+</script>
+</body>
+</html>
